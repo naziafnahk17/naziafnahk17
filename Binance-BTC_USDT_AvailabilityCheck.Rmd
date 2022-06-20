@@ -1,0 +1,290 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
+
+```{r}
+# install.packages("mongolite")
+library(mongolite)
+```
+
+```{r}
+# This is the connection_string. You can get the exact url from your MongoDB cluster screen
+
+connection_string = 'mongodb+srv://sanju2:sanju2@bohdevelopment-0vqoq.mongodb.net/futuresPriceFeed'
+
+data = mongo(collection="index_price", db="futuresPriceFeed", url=connection_string)
+```
+
+```{r}
+data$iterate()$one()
+```
+```{r}
+# How do get distinct columns ?
+
+```
+
+```{r}
+#query = data$find('{"source": "binance_f","pair":"BTC_USDT"}')
+
+query_okex = data$find('{"source": "okex_f","pair":"BTC_USDT"}')
+
+```
+
+```{r}
+#head(query,10)
+
+head(query_okex,10)
+```
+
+```{r}
+
+# install.packages(c('tibble', 'dplyr', 'readr'))
+install.packaga
+
+```
+
+```{r}
+# query$eventTime_new = query$eventTime/1000
+
+# query$eventTime_new = as.POSIXct(query$eventTime_new, origin="1970-01-01")
+# 
+# query$time_diff = as.numeric(difftime(query$created_at,query$eventTime_new,tz="UTC",units="secs"))
+# head(query,10)
+
+
+# ------------ okex_f --------------------
+
+query_okex$eventTime_new = query_okex$eventTime/1000   # only for 13 digit unix code
+
+query_okex$eventTime_new = as.POSIXct(query_okex$eventTime_new, origin="1970-01-01")
+
+query_okex$time_diff = as.numeric(difftime(query_okex$created_at,query_okex$eventTime_new,tz="UTC",units="secs"))
+head(query_okex,10)
+```
+
+```{r}
+
+# install.packages("tidyverse", dependencies=T)
+# install.packages("lubridate") 
+# install.packages("ggplot2")
+# library(tidyverse)
+#library(lubridate)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+```
+
+```{r}
+
+b<-boxplot(query$time_diff,col="blue",main = "Overall distibution of time difference of all prices")
+
+##o <-boxplot(query_okex$time_diff,col="blue",main = "Overall distibution of time difference of all prices")
+
+```
+```{r}
+
+boxplot.stats(query$time_diff)
+
+# boxplot.stats(query_okex$time_diff)
+
+```
+
+
+```{r}
+# install.packages("dplyr")
+library(dplyr)
+```
+
+
+```{r}
+hist(query$time_diff)
+#hist(query_okex$time_diff)
+```
+
+```{r}
+summary(query$time_diff)
+#summary(query_okex$time_diff)
+```
+
+```{r}
+
+
+query$date_ <- as.Date(query$eventTime_new)
+query$hour_ <- format(as.POSIXct(query$eventTime_new), format = "%H")
+query$min_ <- format(as.POSIXct(query$eventTime_new), format = "%M")
+query$sec_ <- format(as.POSIXct(query$eventTime_new), format = "%S")
+
+df <- query[,c("eventTime_new","date_","hour_","min_","sec_","created_at","pair","iPrice","time_diff","source")]
+
+head(df,10)
+
+
+# ---------------- okex -------------
+
+
+query_okex$date_ <- as.Date(query_okex$eventTime_new)
+query_okex$hour_ <- format(as.POSIXct(query_okex$eventTime_new), format = "%H")
+query_okex$min_ <- format(as.POSIXct(query_okex$eventTime_new), format = "%M")
+query_okex$sec_ <- format(as.POSIXct(query_okex$eventTime_new), format = "%S")
+
+df_o <- query_okex[,c("eventTime_new","date_","hour_","min_","sec_","created_at","pair","iPrice","time_diff","source")]
+
+head(df_o,1000)
+
+```
+```{r}
+
+
+daily_avg_td <- aggregate(df$time_diff, list(df$date_), FUN=mean)
+print(daily_avg_td)
+
+
+# ## --- okex_f
+# daily_avg_td_o <- aggregate(df_o$time_diff, list(df_o$date_), FUN=mean)
+# print(daily_avg_td_o)
+
+
+
+```
+
+```{r}
+daily_avg_td_h_o <- aggregate(df_o$time_diff, list(df_o$hour_), FUN=mean)
+print(daily_avg_td_h_o)
+```
+```{r}
+daily_avg_td_d_h_o <- aggregate(df_o$time_diff, list(df_o$date_,df_o$hour_), FUN=mean)
+print(daily_avg_td_d_h_o)
+
+daily_avg_td_d_h_o
+```
+
+
+
+
+```{r}
+ ggplot(daily_avg_td_o,aes(x=Group.1,
+             y=x)) +
+  geom_col()+
+  labs(title="daily avg delay",
+       y="avg_delay")
+
+
+```
+```{r}
+ ggplot(daily_avg_td_h_o,aes(x=Group.1,
+             y=x)) +
+  geom_col()+
+  labs(title="hourly avg delay",
+       y="avg_delay")
+```
+```{r}
+ # pivot table
+
+widedata <- pivot_wider(daily_avg_td_d_h_o,names_from = Group.1, values_from = x)
+widedata
+
+
+
+```
+```{r}
+#library(ggplot2)
+#install.packages("reshape2")
+#library(reshape2)
+df <- melt(widedata ,  id.vars = 'Group.2', variable.name = 'series')
+
+ggplot(df, aes(Group.2, value)) +
+  #geom_line(aes(colour = series))+
+  facet_grid(series ~ .)
+
+```
+```{r}
+
+head(df,10)
+
+```
+
+```{r}
+head(df_o,10)
+```
+
+```{r}
+ df<- df %>% 
+  select(eventTime_new, iPrice, pair,source) %>%
+  group_by(eventTime_new) %>%
+  mutate(iPrice_m = max(iPrice))
+
+
+ df_o <- df_o %>% 
+   select(eventTime_new, iPrice, pair,source) %>%
+   group_by(eventTime_new) %>%
+   mutate(iPrice_m = max(iPrice))
+
+head(df_o,1000)
+```
+
+```{r}
+write.csv(df,'df_binance_1.csv')
+write.csv(df_o,'df_okex_2.csv')
+```
+
+
+```{r}
+aggregate(df$date_, list(df$date_), FUN=length)
+nrow(df)
+
+aggregate(df_o$date_, list(df_o$date_), FUN=length)
+nrow(df_o)
+
+
+```
+```{r}
+
+df <- df[,c("eventTime_new","iPrice","source")]
+head(df,1000)
+
+df_o <- df_o[c("eventTime_new","iPrice","source")]
+head(df_o,1000)
+
+```
+```{r}
+
+df_b_o <- merge(x=df,y=df_o,by="eventTime_new",all.x = TRUE, all.y = FALSE)
+
+df_b_o <- na.omit(df_b_o)
+
+df_b_o$price_diff <- df_b_o$iPrice.x - df_b_o$iPrice.y
+
+df_b_o$price_diff_percent <- as.numeric((df_b_o$price_diff*100)/df_b_o$iPrice.x)
+
+sort(df_b_o$eventTime_new)
+
+head(df_b_o,1000)
+```
+```{r}
+table(df_o$eventTime_new)
+```
+
+
+
+```{r}
+
+hist(df_b_o$price_diff_percent)
+
+```
+```{r}
+hist(df_b_o$price_diff)
+```
+
+```{r}
+#install.packages("Hmisc")
+#library(Hmisc)
+summary(df_b_o$price_diff) 
+```
+
