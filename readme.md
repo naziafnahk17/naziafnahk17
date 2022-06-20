@@ -1,7 +1,7 @@
 - 👋 Hi, I’m @naziafnahk17
 - 👀 I’m interested in solving problems using data
 - 🌱 I’m currently learning python
-- 💞️ I’m looking to collaborate on web3 projects
+- 💞️ I’m looking to collaborate on data science projects
 - 📫 How to reach me - Email : khanfaizanurrahim@gmail.com 
 
 <!---
